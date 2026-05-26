@@ -1,0 +1,83 @@
+name: Build & test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: C++${{ matrix.cxx_std }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx_std: [17, 20, 23]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Ninja
+        run: sudo apt-get install -y ninja-build
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DULLOG_BUILD_TESTS=ON -DCMAKE_CXX_STANDARD=${{ matrix.cxx_std }}
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        working-directory: build
+        run: ctest --output-on-failure --output-junit report.xml
+
+      - name: Upload JUnit report
+        if: always() && matrix.cxx_std == 17
+        uses: actions/upload-artifact@v5
+        with:
+          name: gtest-report
+          path: build/report.xml
+
+  arm-build:
+    name: arm-none-eabi · ${{ matrix.cpu }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        cpu: [cortex-m0plus, cortex-m4, cortex-m7, cortex-m33]
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install ARM toolchain
+        run: sudo apt-get install -y gcc-arm-none-eabi ninja-build
+
+      - name: Configure
+        run: cmake -S . -B build -G Ninja
+             -DCMAKE_TOOLCHAIN_FILE=cmake/arm-none-eabi.cmake
+             -DARM_CPU=${{ matrix.cpu }}
+
+      - name: Build
+        run: cmake --build build --parallel
+
+  report:
+    name: Publish test report
+    needs: test
+    if: always() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: gtest-report
+          path: .
+
+      - name: Publish test report
+        uses: dorny/test-reporter@v2
+        with:
+          name: GTest Results
+          path: report.xml
+          reporter: java-junit
