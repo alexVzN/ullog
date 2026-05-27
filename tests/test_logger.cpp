@@ -80,31 +80,41 @@ TEST_F(LoggerTest, Sink_CalledForEachRecord) {
 // ── Record format ─────────────────────────────────────────────────────────────
 
 TEST_F(LoggerTest, Record_EndsWithNewline) {
-    { auto r = LOG; }
+    {
+        auto r = LOG;
+    }
     ASSERT_FALSE(sink_.out.empty());
     EXPECT_EQ(sink_.out.back(), '\n');
 }
 
 TEST_F(LoggerTest, Record_Header_ContainsBrackets) {
-    { auto r = LOG; }
+    {
+        auto r = LOG;
+    }
     EXPECT_EQ(sink_.out.front(), '[');
 }
 
 TEST_F(LoggerTest, Record_Header_TimestampZeroSeconds) {
     clock_.ticks_us = 0;
-    { auto r = LOG; }
+    {
+        auto r = LOG;
+    }
     EXPECT_TRUE(outputContains("0.000000"));
 }
 
 TEST_F(LoggerTest, Record_Header_TimestampOneSecond) {
     clock_.ticks_us = 1000000;
-    { auto r = LOG; }
+    {
+        auto r = LOG;
+    }
     EXPECT_TRUE(outputContains("1.000000"));
 }
 
 TEST_F(LoggerTest, Record_Header_TimestampSubSecond) {
     clock_.ticks_us = 500000;
-    { auto r = LOG; }
+    {
+        auto r = LOG;
+    }
     EXPECT_TRUE(outputContains("0.500000"));
 }
 

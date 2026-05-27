@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a new feature or improvement.
+title: "[feat] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem are you trying to solve? What's the use case?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you like ullog to behave? Sketch the API if applicable.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Workarounds you've tried or other designs you considered.
+    validations:
+      required: false
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Embedded constraints
+      description: |
+        Any constraints relevant to ullog's design (no heap, no exceptions,
+        bounded buffers, target MCU, etc.)?
+    validations:
+      required: false

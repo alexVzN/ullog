@@ -2,7 +2,15 @@ name: Build & test
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -15,10 +23,10 @@ jobs:
         cxx_std: [17, 20, 23]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
       - name: Install Ninja
-        run: sudo apt-get install -y ninja-build
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
 
       - name: Configure
         run: cmake -S . -B build -G Ninja -DULLOG_BUILD_TESTS=ON -DCMAKE_CXX_STANDARD=${{ matrix.cxx_std }}
@@ -32,7 +40,7 @@ jobs:
 
       - name: Upload JUnit report
         if: always() && matrix.cxx_std == 17
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: gtest-report
           path: build/report.xml
@@ -47,10 +55,10 @@ jobs:
         cpu: [cortex-m0plus, cortex-m4, cortex-m7, cortex-m33]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
 
       - name: Install ARM toolchain
-        run: sudo apt-get install -y gcc-arm-none-eabi ninja-build
+        run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi ninja-build
 
       - name: Configure
         run: cmake -S . -B build -G Ninja
@@ -60,23 +68,41 @@ jobs:
       - name: Build
         run: cmake --build build --parallel
 
+  format-check:
+    name: clang-format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Install clang-format 19
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format-19
+          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-19 100
+
+      - name: Run clang-format check
+        run: ./bin/check-clang-format.sh
+
   report:
     name: Publish test report
     needs: test
     if: always() && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       checks: write
       pull-requests: write
 
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: gtest-report
           path: .
 
       - name: Publish test report
-        uses: dorny/test-reporter@v2
+        uses: dorny/test-reporter@df6247429542221bc30d46a036ee47af1102c451 # v2.7.0
         with:
           name: GTest Results
           path: report.xml
