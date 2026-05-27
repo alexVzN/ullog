@@ -1,0 +1,26 @@
+# Build directories
+cmake-build-*/
+dist/
+
+# CLion / IntelliJ IDE
+.idea/
+
+# CMake artifacts (out-of-source builds not covered by cmake-build-*)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+build.ninja
+*.ninja
+
+# Build outputs
+*.bin
+*.hex
+*.map
+*.elf
+*.axf
+
+# Compiler artifacts
+*.o
+*.a
+*.d
+

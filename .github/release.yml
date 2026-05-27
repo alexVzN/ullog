@@ -1,0 +1,45 @@
+# Configures GitHub's auto-generated release notes.
+# Categories are matched by PR labels; PRs that don't match a category fall
+# into "Other changes". Run "Generate release notes" in the GitHub Releases UI.
+
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - dependencies
+    authors:
+      - dependabot
+      - dependabot[bot]
+
+  categories:
+    - title: Breaking changes
+      labels:
+        - breaking
+        - "semver:major"
+
+    - title: Features
+      labels:
+        - enhancement
+        - feature
+
+    - title: Bug fixes
+      labels:
+        - bug
+        - fix
+
+    - title: Performance
+      labels:
+        - performance
+
+    - title: Documentation
+      labels:
+        - documentation
+
+    - title: CI & tooling
+      labels:
+        - ci
+        - chore
+
+    - title: Other changes
+      labels:
+        - "*"

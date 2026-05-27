@@ -1,0 +1,65 @@
+name: Bug report
+description: Report something that is broken or behaves unexpectedly.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please fill in as much
+        of the form as you can — the more reproducible, the faster it gets fixed.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: A clear, concise description of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal code or commands that reproduce the issue.
+      placeholder: |
+        1. Configure with `cmake -S . -B build -DULLOG_BUILD_TESTS=ON`
+        2. ...
+        3. Observed: ...
+        4. Expected: ...
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: ullog-version
+    attributes:
+      label: ullog version / commit
+      placeholder: "v0.1.0 or commit SHA"
+    validations:
+      required: true
+
+  - type: input
+    id: compiler
+    attributes:
+      label: Compiler and version
+      placeholder: "gcc 13.2, arm-none-eabi-gcc 13.2.Rel1, clang 19, ..."
+    validations:
+      required: true
+
+  - type: input
+    id: target
+    attributes:
+      label: Target (host / MCU)
+      placeholder: "x86_64-linux, cortex-m4, cortex-m33, ..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: Build errors, ctest output, or runtime traces.
+      render: shell
+    validations:
+      required: false
