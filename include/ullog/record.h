@@ -7,6 +7,7 @@
 
 #include "converter_to_cstring.h"
 #include "interfaces/i_sink.h"
+#include "severity.h"
 
 namespace ullog {
 
@@ -15,11 +16,13 @@ public:
     static constexpr uint8_t META_WIDTH = 50;
     static constexpr uint8_t TIME_S_WIDTH = 4;
     static constexpr uint8_t TIME_US_WIDTH = 6;
-    // '[' + TIME_S_WIDTH + '.' + TIME_US_WIDTH + ']' + '[' + META_WIDTH + ']' + ' '
-    static constexpr uint16_t MIN_HEADER_SIZE = 1 + TIME_S_WIDTH + 1 + TIME_US_WIDTH + 1 + 1 + META_WIDTH + 1 + 1;
+    static constexpr uint8_t SEVERITY_WIDTH = 1;
+    // '[' + TIME_S_WIDTH + '.' + TIME_US_WIDTH + ']' + '[' + SEVERITY_WIDTH + ']' + '[' + META_WIDTH + ']' + ' '
+    static constexpr uint16_t MIN_HEADER_SIZE =
+        1 + TIME_S_WIDTH + 1 + TIME_US_WIDTH + 1 + 1 + SEVERITY_WIDTH + 1 + 1 + META_WIDTH + 1 + 1;
 
-    Record(char* buffer, uint16_t bufferSize, int line, const char* fileName, uint16_t fileNameSize,
-           const char* func, uint16_t funcNameSize, uint32_t timestamp_us, ISink& sink);
+    Record(char* buffer, uint16_t bufferSize, Severity severity, int line, const char* fileName,
+           uint16_t fileNameSize, const char* func, uint16_t funcNameSize, uint32_t timestamp_us, ISink& sink);
 
     ~Record();
 
@@ -93,6 +96,7 @@ private:
     uint16_t buffer_size_ = 0;
     uint16_t max_safe_position_;
     uint16_t position_ = 0;
+    Severity severity_;
     ISink& sink_;
 };
 

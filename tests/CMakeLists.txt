@@ -10,14 +10,17 @@ if(NOT GTest_FOUND)
     FetchContent_MakeAvailable(googletest)
 endif()
 
-add_executable(ullog_tests
-        test_logger.cpp
-)
+# Each TU below installs its own ULLOG_CREATE_DEFAULT at a distinct threshold,
+# so they must live in separate executables.
 
-target_link_libraries(ullog_tests PRIVATE
-        ullog::ullog
-        GTest::gtest_main
-)
+function(ullog_add_test NAME)
+    add_executable(${NAME} ${NAME}.cpp)
+    target_link_libraries(${NAME} PRIVATE ullog::ullog GTest::gtest_main)
+    gtest_discover_tests(${NAME})
+endfunction()
 
 include(GoogleTest)
-gtest_discover_tests(ullog_tests)
+
+ullog_add_test(test_logger)         # MAX_SEV = All — open threshold
+ullog_add_test(test_filter_error)   # MAX_SEV = Error — Debug/Info/Warn gated
+ullog_add_test(test_filter_none)    # MAX_SEV = None — everything gated
