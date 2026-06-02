@@ -12,7 +12,10 @@ no third-party dependencies.
 ## Features
 
 - Header-driven RAII record: built in place, flushed in destructor.
-- Stream API: `LOG << "x=" << x << " hex=" << ullog::Hex(addr, 8);`
+- Stream API: `LOGI << "x=" << x << " hex=" << ullog::Hex(addr, 8);`
+- Five severity levels (`Debug → Fatal`) with single-char tag in the
+  record header, filtered at compile time by a per-logger threshold —
+  disabled `LOGx` sites do not evaluate their streamed arguments.
 - Built-in formatters: integers (signed/unsigned), booleans, floats,
   hex, binary, pointers.
 - Compile-time bounded buffer, no allocations.
@@ -21,13 +24,14 @@ no third-party dependencies.
 ## Quick start
 
 ```cpp
-#include <ullog/logger.h>
+#include <ullog/ullog.h>
 
 class UartSink : public ullog::ISink {
 public:
     void write(const char* data, uint16_t len) override {
         HAL_UART_Transmit(&huart1, (uint8_t*)data, len, HAL_MAX_DELAY);
     }
+    void flush() override {}
 };
 
 class HalClock : public ullog::IClock {
@@ -37,12 +41,38 @@ public:
 
 static HalClock clock;
 static UartSink sink;
-static ullog::Logger<1024> logger(clock, sink);
+
+// Buffer 1024 B, threshold = Warn → Debug/Info eliminated at compile time.
+ULLOG_CREATE_DEFAULT(1024, ullog::Severity::Warn, clock, sink);
 
 void someFunc() {
-    LOG << "armed=" << true << " v=" << ullog::Float(3.7f, 2);
+    LOGD << "skipped — eliminated, expensive_call() never runs";
+    LOGW << "armed=" << true << " v=" << ullog::Float(3.7f, 2);
+    LOGF << "boom";   // also flushes the sink
 }
 ```
+
+`ULLOG_CREATE_DEFAULT` is called once at namespace scope, typically in
+the same header your project includes everywhere logging is needed. It
+hides the logger instance behind `ULLOG_DEFAULT` — the `LOGx` macros pick
+it up automatically, you never name the object.
+
+## Severity levels
+
+`Severity` is both a level and a bitmask. `Fatal` is the most severe
+(lowest numeric value), `Debug` the least. `MAX_SEV` is the
+*least-severe* level still emitted: every `LOGx` whose severity value is
+strictly greater than `MAX_SEV` is gated out at compile time.
+
+| Level    | Tag | Value  | Notes                                  |
+|----------|:---:|:------:|----------------------------------------|
+| `Fatal`  | `F` | `0x01` | Flushes the sink after writing         |
+| `Error`  | `E` | `0x02` |                                        |
+| `Warn`   | `W` | `0x04` |                                        |
+| `Info`   | `I` | `0x08` |                                        |
+| `Debug`  | `D` | `0x10` |                                        |
+| `None`   |  —  | `0x00` | Sentinel: pass `None` to gate every LOGx, including Fatal |
+| `All`    |  —  | `0xFF` | Sentinel: pass `All` to emit every LOGx (default)         |
 
 ## CMake
 

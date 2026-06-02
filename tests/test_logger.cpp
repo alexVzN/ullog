@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
 
-#include <memory>
 #include <string>
 
-#include "ullog/logger.h"
+#include "ullog/ullog.h"
 
 namespace {
 
 class CaptureSink : public ullog::ISink {
 public:
     std::string out;
+    int flush_count = 0;
     void write(const char* msg, uint16_t len) override { out.append(msg, len); }
-    void flush() override {}
+    void flush() override { ++flush_count; }
 };
 
 class FakeClock : public ullog::IClock {
@@ -20,177 +20,193 @@ public:
     uint32_t nowUs() override { return ticks_us; }
 };
 
+CaptureSink g_sink;
+FakeClock g_clock;
+
 }  // namespace
+
+ULLOG_CREATE_DEFAULT(256, ullog::Severity::All, g_clock, g_sink);
+
+static_assert(std::remove_reference_t<decltype(ULLOG_DEFAULT)>::max_severity == ullog::Severity::All);
 
 class LoggerTest : public ::testing::Test {
 protected:
     static constexpr size_t kBufSize = 256;
 
     void SetUp() override {
-        sink_.out.clear();
-        clock_.ticks_us = 0;
-        logger_ = std::make_unique<ullog::Logger<kBufSize>>(clock_, sink_);
+        g_sink.out.clear();
+        g_sink.flush_count = 0;
+        g_clock.ticks_us = 0;
     }
 
-    void TearDown() override { logger_.reset(); }
-
-    bool outputContains(const std::string& s) const {
-        return sink_.out.find(s) != std::string::npos;
-    }
-
-    CaptureSink sink_;
-    FakeClock clock_;
-    std::unique_ptr<ullog::Logger<kBufSize>> logger_;
+    bool outputContains(const std::string& s) const { return g_sink.out.find(s) != std::string::npos; }
 };
 
-// ── ILogger instance ──────────────────────────────────────────────────────────
-
-TEST_F(LoggerTest, Get_ReturnsConstructedInstance) {
-    EXPECT_EQ(&ullog::ILogger::get(), logger_.get());
-}
-
-// ── Sink timing ───────────────────────────────────────────────────────────────
-
-TEST_F(LoggerTest, Sink_NotCalledBeforeRecordDestruction) {
-    {
-        auto rec = LOG;  // Record alive
-        EXPECT_TRUE(sink_.out.empty());
-        // rec destroyed here → sink fires
-    }
-    EXPECT_FALSE(sink_.out.empty());
+TEST_F(LoggerTest, Sink_FiresOnStatementEnd) {
+    LOGI;
+    EXPECT_FALSE(g_sink.out.empty());
 }
 
 TEST_F(LoggerTest, Sink_CalledOncePerRecord) {
-    LOG << "hello";
+    LOGI << "hello";
     int count = 0;
-    for (char c : sink_.out)
+    for (char c : g_sink.out)
         if (c == '\n')
             ++count;
-
     EXPECT_EQ(count, 1);
 }
 
 TEST_F(LoggerTest, Sink_CalledForEachRecord) {
-    LOG << "first";
-    auto after_first = sink_.out.size();
-    LOG << "second";
-    EXPECT_GT(sink_.out.size(), after_first);
+    LOGI << "first";
+    auto after_first = g_sink.out.size();
+    LOGI << "second";
+    EXPECT_GT(g_sink.out.size(), after_first);
 }
 
-// ── Record format ─────────────────────────────────────────────────────────────
-
 TEST_F(LoggerTest, Record_EndsWithNewline) {
-    {
-        auto r = LOG;
-    }
-    ASSERT_FALSE(sink_.out.empty());
-    EXPECT_EQ(sink_.out.back(), '\n');
+    LOGI;
+    ASSERT_FALSE(g_sink.out.empty());
+    EXPECT_EQ(g_sink.out.back(), '\n');
 }
 
 TEST_F(LoggerTest, Record_Header_ContainsBrackets) {
-    {
-        auto r = LOG;
-    }
-    EXPECT_EQ(sink_.out.front(), '[');
+    LOGI;
+    EXPECT_EQ(g_sink.out.front(), '[');
 }
 
 TEST_F(LoggerTest, Record_Header_TimestampZeroSeconds) {
-    clock_.ticks_us = 0;
-    {
-        auto r = LOG;
-    }
+    g_clock.ticks_us = 0;
+    LOGI;
     EXPECT_TRUE(outputContains("0.000000"));
 }
 
 TEST_F(LoggerTest, Record_Header_TimestampOneSecond) {
-    clock_.ticks_us = 1000000;
-    {
-        auto r = LOG;
-    }
+    g_clock.ticks_us = 1000000;
+    LOGI;
     EXPECT_TRUE(outputContains("1.000000"));
 }
 
 TEST_F(LoggerTest, Record_Header_TimestampSubSecond) {
-    clock_.ticks_us = 500000;
-    {
-        auto r = LOG;
-    }
+    g_clock.ticks_us = 500000;
+    LOGI;
     EXPECT_TRUE(outputContains("0.500000"));
 }
 
-// ── operator<< types ──────────────────────────────────────────────────────────
-
 TEST_F(LoggerTest, Stream_CString) {
-    LOG << "hello world";
+    LOGI << "hello world";
     EXPECT_TRUE(outputContains("hello world"));
 }
 
 TEST_F(LoggerTest, Stream_StringLiteral) {
-    LOG << "literal";
+    LOGI << "literal";
     EXPECT_TRUE(outputContains("literal"));
 }
 
 TEST_F(LoggerTest, Stream_BoolTrue) {
-    LOG << true;
+    LOGI << true;
     EXPECT_TRUE(outputContains("true"));
 }
 
 TEST_F(LoggerTest, Stream_BoolFalse) {
-    LOG << false;
+    LOGI << false;
     EXPECT_TRUE(outputContains("false"));
 }
 
 TEST_F(LoggerTest, Stream_PositiveInt) {
-    LOG << static_cast<int32_t>(42);
+    LOGI << static_cast<int32_t>(42);
     EXPECT_TRUE(outputContains("42"));
 }
 
 TEST_F(LoggerTest, Stream_NegativeInt) {
-    LOG << static_cast<int32_t>(-7);
+    LOGI << static_cast<int32_t>(-7);
     EXPECT_TRUE(outputContains("-7"));
 }
 
 TEST_F(LoggerTest, Stream_Uint) {
-    LOG << static_cast<uint32_t>(255);
+    LOGI << static_cast<uint32_t>(255);
     EXPECT_TRUE(outputContains("255"));
 }
 
 TEST_F(LoggerTest, Stream_Float) {
-    LOG << 3.14f;
+    LOGI << 3.14f;
     EXPECT_TRUE(outputContains("3.14"));
 }
 
 TEST_F(LoggerTest, Stream_HexArg) {
-    LOG << ullog::Hex(0xFF, 2);
+    LOGI << ullog::Hex(0xFF, 2);
     EXPECT_TRUE(outputContains("FF") || outputContains("ff"));
 }
 
 TEST_F(LoggerTest, Stream_BinArg) {
-    LOG << ullog::Bin(0b1010, 4);
+    LOGI << ullog::Bin(0b1010, 4);
     EXPECT_TRUE(outputContains("1010"));
 }
 
 TEST_F(LoggerTest, Stream_FloatArg) {
-    LOG << ullog::Float(1.5f, 1);
+    LOGI << ullog::Float(1.5f, 1);
     EXPECT_TRUE(outputContains("1.5"));
 }
 
 TEST_F(LoggerTest, Stream_ChainedValues) {
-    LOG << "x=" << static_cast<int32_t>(10) << " ok";
+    LOGI << "x=" << static_cast<int32_t>(10) << " ok";
     EXPECT_TRUE(outputContains("x="));
     EXPECT_TRUE(outputContains("10"));
     EXPECT_TRUE(outputContains("ok"));
 }
 
-// ── Buffer overflow protection ────────────────────────────────────────────────
-
 TEST_F(LoggerTest, BufferOverflow_DoesNotCrash) {
     std::string big(512, 'A');
-    EXPECT_NO_FATAL_FAILURE({ LOG << big.c_str(); });
+    EXPECT_NO_FATAL_FAILURE({ LOGI << big.c_str(); });
 }
 
 TEST_F(LoggerTest, BufferOverflow_OutputLengthBounded) {
     std::string big(512, 'B');
-    LOG << big.c_str();
-    EXPECT_LE(sink_.out.size(), kBufSize + ullog::MAX_TOKEN);
+    LOGI << big.c_str();
+    EXPECT_LE(g_sink.out.size(), kBufSize + ullog::MAX_TOKEN);
+}
+
+TEST_F(LoggerTest, Severity_DebugTag) {
+    LOGD << "x";
+    EXPECT_TRUE(outputContains("][D]["));
+}
+
+TEST_F(LoggerTest, Severity_InfoTag) {
+    LOGI << "x";
+    EXPECT_TRUE(outputContains("][I]["));
+}
+
+TEST_F(LoggerTest, Severity_WarnTag) {
+    LOGW << "x";
+    EXPECT_TRUE(outputContains("][W]["));
+}
+
+TEST_F(LoggerTest, Severity_ErrorTag) {
+    LOGE << "x";
+    EXPECT_TRUE(outputContains("][E]["));
+}
+
+TEST_F(LoggerTest, Severity_FatalTag) {
+    LOGF << "x";
+    EXPECT_TRUE(outputContains("][F]["));
+}
+
+TEST_F(LoggerTest, Severity_CharHelper) {
+    EXPECT_EQ(ullog::severityChar(ullog::Severity::Debug), 'D');
+    EXPECT_EQ(ullog::severityChar(ullog::Severity::Info), 'I');
+    EXPECT_EQ(ullog::severityChar(ullog::Severity::Warn), 'W');
+    EXPECT_EQ(ullog::severityChar(ullog::Severity::Error), 'E');
+    EXPECT_EQ(ullog::severityChar(ullog::Severity::Fatal), 'F');
+}
+
+TEST_F(LoggerTest, Fatal_FlushesSink) {
+    LOGF << "boom";
+    EXPECT_EQ(g_sink.flush_count, 1);
+}
+
+TEST_F(LoggerTest, NonFatal_DoesNotFlush) {
+    LOGD << "d";
+    LOGI << "i";
+    LOGW << "w";
+    LOGE << "e";
+    EXPECT_EQ(g_sink.flush_count, 0);
 }
