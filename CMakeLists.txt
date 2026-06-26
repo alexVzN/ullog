@@ -9,6 +9,7 @@ option(ULLOG_BUILD_TESTS "Build ullog tests" OFF)
 add_library(ullog STATIC
         src/converter_to_cstring.cpp
         src/record.cpp
+        src/i_sink.cpp
 )
 add_library(ullog::ullog ALIAS ullog)
 

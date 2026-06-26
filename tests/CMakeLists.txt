@@ -24,3 +24,4 @@ include(GoogleTest)
 ullog_add_test(test_logger)         # MAX_SEV = All — open threshold
 ullog_add_test(test_filter_error)   # MAX_SEV = Error — Debug/Info/Warn gated
 ullog_add_test(test_filter_none)    # MAX_SEV = None — everything gated
+ullog_add_test(test_filter_sink)    # runtime per-sink accepted mask

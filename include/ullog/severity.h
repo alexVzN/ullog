@@ -32,4 +32,12 @@ constexpr char severityChar(Severity s) {
     }
 }
 
+constexpr Severity operator&(Severity lhs, Severity rhs) {
+    return static_cast<Severity>(static_cast<uint8_t>(lhs) & static_cast<uint8_t>(rhs));
+}
+
+constexpr Severity operator|(Severity lhs, Severity rhs) {
+    return static_cast<Severity>(static_cast<uint8_t>(lhs) | static_cast<uint8_t>(rhs));
+}
+
 }  // namespace ullog
