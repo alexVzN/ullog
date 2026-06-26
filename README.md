@@ -18,6 +18,8 @@ no third-party dependencies.
   disabled `LOGx` sites do not evaluate their streamed arguments.
 - Built-in formatters: integers (signed/unsigned), booleans, floats,
   hex, binary, pointers.
+- Fan-out to several destinations with `MultiSink`, each child filtered
+  by its own runtime severity mask.
 - Compile-time bounded buffer, no allocations.
 - Pluggable clock and sink via two small interfaces.
 
@@ -73,6 +75,46 @@ strictly greater than `MAX_SEV` is gated out at compile time.
 | `Debug`  | `D` | `0x10` |                                        |
 | `None`   |  —  | `0x00` | Sentinel: pass `None` to gate every LOGx, including Fatal |
 | `All`    |  —  | `0xFF` | Sentinel: pass `All` to emit every LOGx (default)         |
+
+## Per-sink filtering
+
+Beyond the compile-time `MAX_SEV` threshold, each sink carries its own
+*runtime* accepted mask — an arbitrary set of severities, passed to the
+`ISink` constructor (default `All`). A sink opts in by inheriting the
+constructor:
+
+```cpp
+class FlashSink : public ullog::ISink {
+public:
+    using ullog::ISink::ISink;   // FlashSink(Severity accepted)
+    void write(const char* data, uint16_t len) override { /* ... */ }
+    void flush() override {}
+};
+```
+
+Unlike `MAX_SEV` (one ordered threshold per logger), the mask is a free set,
+e.g. `Error | Fatal`. It is checked *after* formatting, so it is for routing,
+not for cheap suppression — keep `MAX_SEV` as tight as the build allows,
+since anything it gates out costs nothing at all.
+
+## Multiple sinks
+
+`MultiSink` drives several destinations from one logger. It is a pure router:
+every record is forwarded to each child's `submit()`, and each child's own
+mask decides whether it is written.
+
+```cpp
+RttSink   rtt;                                                   // accepts All
+FlashSink flash(ullog::Severity::Error | ullog::Severity::Fatal);
+
+ullog::MultiSink sink(rtt, flash);   // child count deduced from arguments
+ULLOG_CREATE_DEFAULT(1024, ullog::Severity::All, clock, sink);
+
+LOGI << "telemetry";   // → rtt only
+LOGE << "fault";       // → rtt and flash
+```
+
+Children are held by reference — they must outlive the `MultiSink`.
 
 ## CMake
 

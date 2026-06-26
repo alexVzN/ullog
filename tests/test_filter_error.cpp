@@ -7,7 +7,8 @@
 //     evaluate their streamed arguments — the ternary's dead branch is
 //     dropped by the optimizer;
 //   * the enabled severity (Error) produces output and evaluates arguments;
-//   * Fatal is unconditionally compiled in regardless of threshold.
+//   * Fatal stays compiled in for any threshold that admits at least Fatal
+//     (i.e. every threshold except None).
 //
 // The threshold is set per-call-to-ULLOG_CREATE_DEFAULT — no #define, no
 // project-wide knob, and the user never types the logger's name.
