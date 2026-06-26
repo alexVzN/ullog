@@ -14,4 +14,4 @@ void ISink::submit(Severity severity, const char* data, uint16_t len) {
         write(data, len);
 }
 
-} // namespace ullog
+}  // namespace ullog
