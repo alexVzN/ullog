@@ -18,6 +18,7 @@ Record::Record(char* buffer, uint16_t bufferSize, Severity severity, int line, c
 }
 
 Record::~Record() {
+    append('\r');
     append('\n');
     sink_.submit(severity_, buffer_, position_);
     if (severity_ == Severity::Fatal)
