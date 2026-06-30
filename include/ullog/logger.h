@@ -1,6 +1,7 @@
 #pragma once
 
 #include "interfaces/i_clock.h"
+#include "interfaces/i_logger.h"
 #include "interfaces/i_sink.h"
 #include "record.h"
 #include "severity.h"
@@ -8,7 +9,7 @@
 namespace ullog {
 
 template <size_t SIZE, Severity MAX_SEV = Severity::All>
-class Logger {
+class Logger : public ILogger {
     static_assert(SIZE >= Record::MIN_HEADER_SIZE * 3, "Logger buffer SIZE is too small to fit the log message");
 
 public:
@@ -22,7 +23,7 @@ public:
     Logger& operator=(Logger&&) = delete;
 
     Record createRecord(Severity severity, int line, const char* fileName, uint16_t fileNameLen, const char* func,
-                        uint16_t funcLen) {
+                        uint16_t funcLen) override {
         return Record(buffer_, SIZE + MAX_TOKEN, severity, line, fileName, fileNameLen, func, funcLen, clock_.nowUs(),
                       sink_);
     }

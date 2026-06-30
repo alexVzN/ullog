@@ -4,6 +4,7 @@
 
 #include <string>
 
+#define ULLOG_MAX_SEVERITY ::ullog::Severity::None
 #include "ullog/ullog.h"
 
 namespace {
@@ -33,7 +34,7 @@ FakeClock g_clock;
 
 ULLOG_CREATE_DEFAULT(256, ullog::Severity::None, g_clock, g_sink);
 
-static_assert(std::remove_reference_t<decltype(ULLOG_DEFAULT)>::max_severity == ullog::Severity::None);
+static_assert(::ullog::detail::kMaxSeverity == ullog::Severity::None);
 
 class FilterNoneTest : public ::testing::Test {
 protected:
