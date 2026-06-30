@@ -26,3 +26,4 @@ ullog_add_test(test_filter_error)   # MAX_SEV = Error — Debug/Info/Warn gated
 ullog_add_test(test_filter_none)    # MAX_SEV = None — everything gated
 ullog_add_test(test_filter_sink)    # runtime per-sink accepted mask
 ullog_add_test(test_multisink)      # MultiSink fan-out routing
+ullog_add_test(test_severity_except)  # ALL_EXCEPT(...) mask arithmetic
