@@ -27,7 +27,7 @@ FakeClock g_clock;
 
 ULLOG_CREATE_DEFAULT(256, ullog::Severity::All, g_clock, g_sink);
 
-static_assert(std::remove_reference_t<decltype(ULLOG_DEFAULT)>::max_severity == ullog::Severity::All);
+static_assert(::ullog::detail::kMaxSeverity == ullog::Severity::All);
 
 class LoggerTest : public ::testing::Test {
 protected:

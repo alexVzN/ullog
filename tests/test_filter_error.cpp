@@ -17,6 +17,7 @@
 
 #include <string>
 
+#define ULLOG_MAX_SEVERITY ::ullog::Severity::Error
 #include "ullog/ullog.h"
 
 namespace {
@@ -99,6 +100,6 @@ TEST_F(FilterTest, Fatal_AlwaysCompiledIn) {
 // ── max_severity reflects the ULLOG_CREATE_DEFAULT argument ─────────────────
 
 TEST_F(FilterTest, Logger_MaxSeverityReflectsInitArg) {
-    static_assert(std::remove_reference_t<decltype(ULLOG_DEFAULT)>::max_severity == ullog::Severity::Error);
+    static_assert(::ullog::detail::kMaxSeverity == ullog::Severity::Error);
     SUCCEED();
 }
